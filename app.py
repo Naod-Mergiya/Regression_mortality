@@ -37,26 +37,64 @@ if df.empty:
 # Filter weeks using data_preprocessing.py function
 df_last_week, df_last_8_weeks = filter_weeks(df)
 
-# Run regression and display results
+# Run regression and collect model summaries
 st.write("### Regression Results")
 models = {}
+summary_data = {}
 for subset, name in [(df, "Full_Dataset"), (df_last_week, "Last_Week"), (df_last_8_weeks, "Last_8_Weeks")]:
     if not subset.empty:
         st.write(f"#### {name}")
         model, _, _ = run_regression(subset, x_cols, y_col, name)
         models[name] = model
         if model is not None:
-            fig = plot_coefficients(model, None, name)  # Explicitly get figure
-            st.pyplot(fig)  # Pass figure to avoid deprecation warning
+            # Extract summary statistics
+            coefs = model.params[1:]  # Exclude intercept
+            pvals = model.pvalues[1:]
+            # Create DataFrame for coefficients
+            coef_df = pd.DataFrame({
+                'Variable': coefs.index,
+                'Coefficient': coefs.values,
+                'P-Value': pvals.values,
+                'Significance': pvals < 0.05
+            })
+            coef_df = coef_df[coef_df['P-Value'] < 0.1]  # Focus on p < 0.1
+            
+            # Add global model statistics
+            global_stats = pd.DataFrame({
+                'Variable': ['R-squared', 'F-value', 'F-p-value'],
+                'Value': [model.rsquared, model.fvalue, model.f_pvalue],
+                'P-Value': [None, None, None],
+                'Significance': [None, None, None]
+            })
+            
+            # Combine coefficient and global stats
+            summary_df = pd.concat([coef_df, global_stats]).reset_index(drop=True)
+            summary_data[name] = summary_df
+            st.table(summary_df.style.format({'Coefficient': '{:.4f}', 'P-Value': '{:.4f}', 'Value': '{:.4f}'}))  # Display table
+            fig = plot_coefficients(model, None, name)  # Visualization
+            st.pyplot(fig)
         else:
             st.write(f"No valid model generated for {name}. Check data or regression.")
     else:
         st.write(f"No data available for {name}")
 
+# Additional visualization: R-squared comparison
+if summary_data:
+    r_squared_data = {name: models[name].rsquared for name, model in models.items() if model is not None}
+    if r_squared_data:
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.bar(r_squared_data.keys(), r_squared_data.values(), color='skyblue')
+        ax.set_xlabel('Dataset')
+        ax.set_ylabel('R-squared')
+        ax.set_title('R-squared Comparison Across Datasets')
+        for i, v in enumerate(r_squared_data.values()):
+            ax.text(i, v + 0.01, f'{v:.3f}', ha='center')
+        st.pyplot(fig)
+
 # Individual variable visualization
 st.write("### Hatchery Distribution")
 if not df_last_week.empty and not df_last_8_weeks.empty:
-    fig = plot_individual_variable(df_last_week, df_last_8_weeks, 'hatchery', y_col)  # Explicitly get figure
-    st.pyplot(fig)  # Pass figure to avoid deprecation warning
+    fig = plot_individual_variable(df_last_week, df_last_8_weeks, 'hatchery', y_col)
+    st.pyplot(fig)
 else:
     st.write("Insufficient data for hatchery distribution plots.")
