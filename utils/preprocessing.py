@@ -1,7 +1,7 @@
 
 import pandas as pd
 
-def load_data(csv_path: str = r"C:\Users\93810\Downloads\regression test.csv") -> pd.DataFrame:
+def load_data(csv_path: str = r"regression test.csv") -> pd.DataFrame:
     """
     Load the raw CSV file and return a DataFrame.
     
