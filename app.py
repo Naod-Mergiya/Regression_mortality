@@ -18,18 +18,21 @@ and has high dimensionality, which may affect model robustness.
 """)
 
 # Load and preprocess data using data_preprocessing.py functions
-  # Update path as needed (e.g., "d:\Regression\processed_data.csv")
-df = load_data()
+df = load_data()  # Update default path in load_data if needed (e.g., "d:\Regression\processed_data.csv")
 y_col = "first_week_mortality"
 x_cols = ["hatchery", "hatcher", "setter", "DriverName", 
           "VehicleNumber", "source_of_eggs", "CustomerType"]
 df = preprocess_data(df, y_col, x_cols)  # Optional if data is already preprocessed
 
+# Debug: Check data
 st.write("### Data Overview")
 st.write(f"Independent variables: {x_cols}")
 st.write(f"NaNs in y: {df[y_col].isna().sum()}")
 st.write(f"NaNs in X columns:\n{df[x_cols].isna().sum()}")
 st.write(f"Data shape: {df.shape}")
+if df.empty:
+    st.error("DataFrame is empty. Check the source or load_data() function.")
+    st.stop()
 
 # Filter weeks using data_preprocessing.py function
 df_last_week, df_last_8_weeks = filter_weeks(df)
@@ -43,17 +46,17 @@ for subset, name in [(df, "Full_Dataset"), (df_last_week, "Last_Week"), (df_last
         model, _, _ = run_regression(subset, x_cols, y_col, name)
         models[name] = model
         if model is not None:
-            fig = plt.figure(figsize=(10, 8))
-            plot_coefficients(model, None, name)
-            st.pyplot(fig)
+            fig = plot_coefficients(model, None, name)  # Explicitly get figure
+            st.pyplot(fig)  # Pass figure to avoid deprecation warning
+        else:
+            st.write(f"No valid model generated for {name}. Check data or regression.")
     else:
         st.write(f"No data available for {name}")
 
 # Individual variable visualization
 st.write("### Hatchery Distribution")
 if not df_last_week.empty and not df_last_8_weeks.empty:
-    fig = plt.figure(figsize=(12, 6))
-    plot_individual_variable(df_last_week, df_last_8_weeks, 'hatchery', y_col)
-    st.pyplot(fig)
+    fig = plot_individual_variable(df_last_week, df_last_8_weeks, 'hatchery', y_col)  # Explicitly get figure
+    st.pyplot(fig)  # Pass figure to avoid deprecation warning
 else:
     st.write("Insufficient data for hatchery distribution plots.")
