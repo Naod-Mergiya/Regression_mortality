@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 def plot_coefficients(model, feature_names, subset_name):
     """
@@ -21,17 +22,19 @@ def plot_coefficients(model, feature_names, subset_name):
     # Filter significant (p<0.05) and sort by abs(coef)
     sig_mask = pvals < 0.05
     sig_coefs = coefs[sig_mask]
-    sig_names = model.params.index[1:][sig_mask]  # Feature names
-    sig_abs = np.array(np.abs(sig_coefs))  # Convert to numpy array
-    sorted_idx = np.argsort(sig_abs)[::-1][:15]  # Top 15
+    sig_names = pd.Series(model.params.index[1:][sig_mask])  # convert Index → Series
+    sig_abs = np.abs(sig_coefs)
     
-    top_names = sig_names[sorted_idx]
-    top_abs = sig_abs[sorted_idx]
-    top_coefs = np.array(sig_coefs)[sorted_idx]  # Convert to numpy array
-    
-    if len(top_names) == 0:
+    if sig_names.empty:
         print(f"No significant coefficients (p<0.05) found for {subset_name}")
         return
+    
+    sorted_idx = np.argsort(sig_abs)[::-1][:15]  # Top 15
+    
+    # Use iloc safely
+    top_names = sig_names.iloc[sorted_idx]
+    top_abs   = sig_abs.iloc[sorted_idx]
+    top_coefs = sig_coefs.iloc[sorted_idx]
     
     # Plot horizontal bar chart
     fig, ax = plt.subplots(figsize=(10, 8))
@@ -43,7 +46,10 @@ def plot_coefficients(model, feature_names, subset_name):
     
     # Add value labels
     for i, bar in enumerate(bars):
-        ax.text(bar.get_width() + 0.0001, bar.get_y() + bar.get_height()/2, f'{top_abs[i]:.4f}', va='center')
+        ax.text(bar.get_width() + 0.0001,
+                bar.get_y() + bar.get_height()/2,
+                f'{top_abs.iloc[i]:.4f}', 
+                va='center')
     
     plt.tight_layout()
     plt.show()

@@ -14,8 +14,8 @@ def load_data(csv_path: str = r"C:\Users\93810\Downloads\regression test.csv") -
     df = pd.read_csv(csv_path)
     print(f"Data loaded from {csv_path}")
     print("First 5 rows:")
-    df.head()
-    return df.head()
+    print(df.head())
+    return df
 
 def preprocess_data(df, y_col, x_cols):
     """
