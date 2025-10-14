@@ -1,10 +1,15 @@
+import os
+import numpy as np
+from dotenv import load_dotenv
 import streamlit as st
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 from utils.preprocessing import load_data, preprocess_data, filter_weeks
 from utils.regression_analysis import run_regression
 from utils.visualization import plot_coefficients, plot_individual_variable
+
+# Ensure output directory exists
+os.makedirs('output', exist_ok=True)
 
 # Set page configuration
 st.set_page_config(page_title="Mortality Regression Dashboard", layout="wide")
@@ -18,16 +23,24 @@ and has high dimensionality, which may affect model robustness.
 """)
 
 # Load and preprocess data using data_preprocessing.py functions
-df = load_data()  # Update default path in load_data if needed (e.g., "d:\Regression\processed_data.csv")
+df = load_data()
+
+# Apply the drop for docs_received == 0 (as per latest update)
+if 'docs_received' in df.columns:
+    original_rows = len(df)
+    df = df[df['docs_received'] != 0]
+    st.info(f"Dropped {original_rows - len(df)} rows where docs_received == 0. New shape: {df.shape}")
+df["first_week_mortality"] = df["doc_dead_1st_week"] / df["docs_received"]
 y_col = "first_week_mortality"
-x_cols = ["hatchery", "hatcher", "setter", "DriverName", 
-          "VehicleNumber", "source_of_eggs", "CustomerType"]
+x_cols = ["hatchery", "hatcher", "setter", "driver_id", 
+          "vehicle_number", "source_of_eggs", "customer_type"]
 df = preprocess_data(df, y_col, x_cols)  # Optional if data is already preprocessed
 
 # Debug: Check data
 st.write("### Data Overview")
 st.write(f"Independent variables: {x_cols}")
 st.write(f"NaNs in y: {df[y_col].isna().sum()}")
+st.write(f"Infs in y: {np.isinf(df[y_col]).sum()}")
 st.write(f"NaNs in X columns:\n{df[x_cols].isna().sum()}")
 st.write(f"Data shape: {df.shape}")
 if df.empty:
@@ -57,7 +70,7 @@ for subset, name in [(df, "Full_Dataset"), (df_last_week, "Last_Week"), (df_last
                 'P-Value': pvals.values,
                 'Significance': pvals < 0.05
             })
-            coef_df = coef_df[coef_df['P-Value'] < 0.1]  # Focus on p < 0.1
+            coef_df = coef_df[coef_df['P-Value'] < 0.05]  # Focus on p < 0.1
             
             # Add global model statistics
             global_stats = pd.DataFrame({

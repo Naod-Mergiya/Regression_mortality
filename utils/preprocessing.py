@@ -2,36 +2,38 @@
 import os
 import pandas as pd
 from dotenv import load_dotenv
+import urllib.parse
 import pyodbc
 from sqlalchemy import create_engine, text
 
-def load_data() -> pd.DataFrame:
-    """
-    Load selected columns from Azure SQL Database using Service Principal authentication.
-
-    Returns:
-        pd.DataFrame: DataFrame with selected columns.
-    """
-    # Environment variables
+# Load data from Azure SQL Database using service principal authentication
+def load_data():
+    load_dotenv()
     server = os.getenv("SQL_SERVER")
     database = os.getenv("SQL_DATABASE")
     client_id = os.getenv("AZURE_CLIENT_ID")
     client_secret = os.getenv("AZURE_CLIENT_SECRET")
     tenant_id = os.getenv("AZURE_TENANT_ID")
-
-    # Build connection string for SQLAlchemy
-    conn_str = (
-        f"mssql+pyodbc://{client_id}:{client_secret}@{server}:1433/{database}"
-        f"?driver=ODBC+Driver+17+for+SQL+Server"
-        f"&authentication=ActiveDirectoryServicePrincipal"
-        f"&tenant_id={tenant_id}"
-        f"&Encrypt=yes"
-        f"&TrustServerCertificate=no"
+    
+    if not all([server, database, client_id, client_secret, tenant_id]):
+        raise ValueError("Missing required environment variables for Azure SQL connection.")
+    
+    # URL-encode the password
+    password_encoded = urllib.parse.quote_plus(client_secret)
+    
+    # Build the connection string for Azure SQL with AAD service principal
+    connection_string = (
+        f"mssql+pyodbc://{urllib.parse.quote_plus(client_id)}:{password_encoded}@{server}/{database}?"
+        f"driver=ODBC+Driver+17+for+SQL+Server&"
+        f"authentication=ActiveDirectoryServicePrincipal&"
+        f"tenant_id={tenant_id}&"
+        f"TrustServerCertificate=yes"
     )
-
-    # SQL query — only the needed columns
-    query = text("""
-        SELECT 
+    
+    engine = create_engine(connection_string)
+    
+# Replace with your actual query/table name
+    query = """SELECT 
             hatchery,
             hatcher,
             setter,
@@ -42,20 +44,12 @@ def load_data() -> pd.DataFrame:
             doc_dead_1st_week,
             docs_received,
             dispatch_date
-        FROM [hatchconnect].[SurveysData]
-    """)
-
-    # Create SQLAlchemy engine
-    engine = create_engine(conn_str)
-
-    # Execute query
-    with engine.connect() as conn:
-        df = pd.read_sql(query, conn)
-
+        FROM [hatchconnect].[SurveysData]"""  
+    df = pd.read_sql(query, engine)
     print(f"✅ Data loaded successfully from {database}")
     print(f"📊 Rows: {len(df)}, Columns: {len(df.columns)}")
     print(df.head())
-
+    
     return df
 
 
