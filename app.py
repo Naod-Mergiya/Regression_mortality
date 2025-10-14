@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from utils.preprocessing import load_data, preprocess_data, filter_weeks
+import urllib.parse
+from sqlalchemy import create_engine
+from utils.preprocessing import preprocess_data, filter_weeks
 from utils.regression_analysis import run_regression
 from utils.visualization import plot_coefficients, plot_individual_variable
 
@@ -17,12 +19,57 @@ st.set_page_config(page_title="Mortality Regression Dashboard", layout="wide")
 # Title and description
 st.title("Mortality Regression Analysis Dashboard")
 st.write("""
-This dashboard analyzes a preprocessed mortality dataset using linear regression. The data is loaded and transformed 
-using functions from data_preprocessing.py. Note: The dataset has a small sample size, is predominantly categorical, 
-and has high dimensionality, which may affect model robustness.
+This dashboard analyzes a preprocessed mortality dataset using linear regression. The data is loaded from Azure SQL using service principal authentication.
+Note: The dataset has a small sample size, is predominantly categorical, and has high dimensionality, which may affect model robustness.
 """)
 
-# Load and preprocess data using data_preprocessing.py functions
+# Load data from Azure SQL Database using service principal authentication
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def load_data():
+    load_dotenv()
+    server = os.getenv("SQL_SERVER")
+    database = os.getenv("SQL_DATABASE")
+    client_id = os.getenv("AZURE_CLIENT_ID")
+    client_secret = os.getenv("AZURE_CLIENT_SECRET")
+    tenant_id = os.getenv("AZURE_TENANT_ID")
+    
+    if not all([server, database, client_id, client_secret, tenant_id]):
+        raise ValueError("Missing required environment variables for Azure SQL connection.")
+    
+    # URL-encode the password
+    password_encoded = urllib.parse.quote_plus(client_secret)
+    
+    # Build the connection string for Azure SQL with AAD service principal
+    connection_string = (
+        f"mssql+pyodbc://{urllib.parse.quote_plus(client_id)}:{password_encoded}@{server}/{database}?"
+        f"driver=ODBC+Driver+17+for+SQL+Server&"
+        f"authentication=ActiveDirectoryServicePrincipal&"
+        f"tenant_id={tenant_id}&"
+        f"TrustServerCertificate=yes"
+    )
+    
+    engine = create_engine(connection_string)
+    
+    # Replace with your actual query/table name
+    query = """SELECT 
+            hatchery,
+            hatcher,
+            setter,
+            driver_id,
+            vehicle_number,
+            source_of_eggs,
+            customer_type,
+            doc_dead_1st_week,
+            docs_received,
+            dispatch_date
+        FROM [hatchconnect].[SurveysData]"""  
+    df = pd.read_sql(query, engine)
+    print(f"✅ Data loaded successfully from {database}")
+    print(f"📊 Rows: {len(df)}, Columns: {len(df.columns)}")
+    print(df.head())
+    
+    return df
+
 df = load_data()
 
 # Apply the drop for docs_received == 0 (as per latest update)
@@ -30,6 +77,7 @@ if 'docs_received' in df.columns:
     original_rows = len(df)
     df = df[df['docs_received'] != 0]
     st.info(f"Dropped {original_rows - len(df)} rows where docs_received == 0. New shape: {df.shape}")
+
 df["first_week_mortality"] = df["doc_dead_1st_week"] / df["docs_received"]
 y_col = "first_week_mortality"
 x_cols = ["hatchery", "hatcher", "setter", "driver_id", 
@@ -70,7 +118,7 @@ for subset, name in [(df, "Full_Dataset"), (df_last_week, "Last_Week"), (df_last
                 'P-Value': pvals.values,
                 'Significance': pvals < 0.05
             })
-            coef_df = coef_df[coef_df['P-Value'] < 0.05]  # Focus on p < 0.1
+            coef_df = coef_df[coef_df['P-Value'] < 0.05]  # Focus on p < 0.05
             
             # Add global model statistics
             global_stats = pd.DataFrame({
