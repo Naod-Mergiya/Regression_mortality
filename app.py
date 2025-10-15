@@ -9,7 +9,8 @@ from sqlalchemy import create_engine
 from utils.preprocessing import preprocess_data, filter_weeks
 from utils.regression_analysis import run_regression
 from utils.visualization import plot_coefficients, plot_individual_variable
-
+import warnings
+warnings.filterwarnings("ignore", category=pd.errors.SettingWithCopyWarning)
 # Ensure output directory exists
 os.makedirs('output', exist_ok=True)
 
