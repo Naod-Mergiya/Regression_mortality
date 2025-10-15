@@ -6,6 +6,8 @@ import urllib.parse
 import pyodbc
 from sqlalchemy import create_engine, text
 pd.options.mode.copy_on_write = True
+import warnings
+warnings.filterwarnings('ignore', category=pd.errors.SettingWithCopyWarning)
 
 # Load data from Azure SQL Database using service principal authentication
 def load_data():
