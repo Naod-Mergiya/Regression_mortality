@@ -5,9 +5,6 @@ from dotenv import load_dotenv
 import urllib.parse
 import pyodbc
 from sqlalchemy import create_engine, text
-pd.options.mode.copy_on_write = True
-import warnings
-warnings.filterwarnings('ignore', category=pd.errors.SettingWithCopyWarning)
 
 # Load data from Azure SQL Database using service principal authentication
 def load_data():
@@ -55,6 +52,7 @@ def load_data():
     df.to_csv('doc_mortality.csv')
     
     return df
+
 def read_doc_mortality():
     """
     Reads the 'doc_mortality.csv' file from the same directory 
@@ -78,26 +76,29 @@ def preprocess_data(df, y_col, x_cols):
     """
     Preprocess the dataset: parse dates, add week column, handle NaNs.
     """
-    # Ensure dispatch_date is datetime and derive week number
-    df = df.copy()  # Full copy upfront to own memory before any slicing
+    # Make a full independent copy
+    df = df.copy()
+
+    # Parse date and add week column
     df['dispatch_date'] = pd.to_datetime(df['dispatch_date'], errors='coerce')
     df['Week'] = df['dispatch_date'].dt.isocalendar().week
 
     if 'Week' not in x_cols:
         x_cols.append('Week')
 
-    # Drop rows where the target is missing, make a real copy again
+    # Drop rows where target is missing, then make another copy
     df = df.dropna(subset=[y_col]).copy()
 
-    # Fill missing predictors: 'Unknown' for categorical, 0 for numeric
+    # Fill missing predictors safely using .loc
     for col in x_cols:
         if pd.api.types.is_object_dtype(df[col]) or pd.api.types.is_categorical_dtype(df[col]):
             df.loc[:, col] = df[col].fillna('Unknown')
-            df.loc[:, col] = pd.Categorical(df[col])
+            df.loc[:, col] = df[col].astype('category')
         else:
             df.loc[:, col] = df[col].fillna(0)
 
     return df
+
 
 
 def filter_weeks(df):
