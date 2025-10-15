@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import urllib.parse
 import pyodbc
 from sqlalchemy import create_engine, text
+pd.options.mode.copy_on_write = True
 
 # Load data from Azure SQL Database using service principal authentication
 def load_data():
@@ -80,17 +81,16 @@ def preprocess_data(df, y_col, x_cols):
     if 'Week' not in x_cols:
         x_cols.append('Week')
     
-    # Drop rows where the target is missing
+    # Drop rows where the target is missing (returns a view, but CoW handles it)
     df = df.dropna(subset=[y_col])
-    df = df.copy()  # Explicit copy to avoid SettingWithCopyWarning
     
     # Fill missing predictors: 'Unknown' for object/categorical, 0 for numeric
     for col in x_cols:
         if pd.api.types.is_object_dtype(df[col]):
-            df.loc[:, col] = df[col].fillna('Unknown')
-            df.loc[:, col] = df[col].astype('category')  # Convert to category dtype
+            df[col] = df[col].fillna('Unknown')
+            df[col] = df[col].astype('category')  # Convert to category dtype
         else:
-            df.loc[:, col] = df[col].fillna(0)
+            df[col] = df[col].fillna(0)
     
     # Optional: Print value counts for debugging
     # for col in x_cols:
