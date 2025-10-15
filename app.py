@@ -153,6 +153,7 @@ for subset, name in [(df, "Full_Dataset"), (df_last_week, "Last_Week"), (df_last
             # Combine coefficient and global stats
             summary_df = pd.concat([coef_df, global_stats]).reset_index(drop=True)
             summary_data[name] = summary_df
+            summary_df = summary_df.fillna({'Coefficient': 0.0})
             st.table(summary_df.style.format({'Coefficient': '{:.4f}', 'P-Value': '{:.4f}', 'Value': '{:.4f}'}))  # Display table
             fig = plot_coefficients(model, None, name)  # Visualization
             st.pyplot(fig)
