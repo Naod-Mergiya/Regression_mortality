@@ -10,7 +10,10 @@ from utils.preprocessing import preprocess_data, filter_weeks
 from utils.regression_analysis import run_regression
 from utils.visualization import plot_coefficients, plot_individual_variable
 import warnings
+import time  # For timing
+
 warnings.filterwarnings("ignore", category=pd.errors.SettingWithCopyWarning)
+
 # Ensure output directory exists
 os.makedirs('output', exist_ok=True)
 
@@ -23,53 +26,6 @@ st.write("""
 This dashboard analyzes a preprocessed mortality dataset using linear regression. The data is loaded from Azure SQL using service principal authentication.
 Note: The dataset has a small sample size, is predominantly categorical, and has high dimensionality, which may affect model robustness.
 """)
-
-# Load data from Azure SQL Database using service principal authentication
-@st.cache_data(ttl=3600)  # Cache for 1 hour
-def load_data():
-    load_dotenv()
-    server = os.getenv("SQL_SERVER")
-    database = os.getenv("SQL_DATABASE")
-    client_id = os.getenv("AZURE_CLIENT_ID")
-    client_secret = os.getenv("AZURE_CLIENT_SECRET")
-    tenant_id = os.getenv("AZURE_TENANT_ID")
-    
-    if not all([server, database, client_id, client_secret, tenant_id]):
-        raise ValueError("Missing required environment variables for Azure SQL connection.")
-    
-    # URL-encode the password
-    password_encoded = urllib.parse.quote_plus(client_secret)
-    
-    # Build the connection string for Azure SQL with AAD service principal
-    connection_string = (
-        f"mssql+pyodbc://{urllib.parse.quote_plus(client_id)}:{password_encoded}@{server}/{database}?"
-        f"driver=ODBC+Driver+17+for+SQL+Server&"
-        f"authentication=ActiveDirectoryServicePrincipal&"
-        f"tenant_id={tenant_id}&"
-        f"TrustServerCertificate=yes"
-    )
-    
-    engine = create_engine(connection_string)
-    
-    # Replace with your actual query/table name
-    query = """SELECT 
-            hatchery,
-            hatcher,
-            setter,
-            driver_id,
-            vehicle_number,
-            source_of_eggs,
-            customer_type,
-            doc_dead_1st_week,
-            docs_received,
-            dispatch_date
-        FROM [hatchconnect].[SurveysData]"""  
-    df = pd.read_sql(query, engine)
-    print(f"✅ Data loaded successfully from {database}")
-    print(f"📊 Rows: {len(df)}, Columns: {len(df.columns)}")
-    print(df.head())
-    
-    return df
 
 @st.cache_data
 def read_doc_mortality():
@@ -120,6 +76,16 @@ if df.empty:
 # Filter weeks using data_preprocessing.py function
 df_last_week, df_last_8_weeks = filter_weeks(df)
 
+# Cached regression runner with timing and progress
+@st.cache_data
+def run_cached_regression(subset, x_cols, y_col, name):
+    with st.spinner(f"Fitting {name} model..."):
+        start_time = time.time()
+        model, _, _ = run_regression(subset, x_cols, y_col, name)
+        elapsed = time.time() - start_time
+        st.success(f"{name} model fitted in {elapsed:.2f}s")
+        return model
+
 # Run regression and collect model summaries
 st.write("### Regression Results")
 models = {}
@@ -127,7 +93,7 @@ summary_data = {}
 for subset, name in [(df, "Full_Dataset"), (df_last_week, "Last_Week"), (df_last_8_weeks, "Last_8_Weeks")]:
     if not subset.empty:
         st.write(f"#### {name}")
-        model, _, _ = run_regression(subset, x_cols, y_col, name)
+        model = run_cached_regression(subset, x_cols, y_col, name)
         models[name] = model
         if model is not None:
             # Extract summary statistics
@@ -153,7 +119,7 @@ for subset, name in [(df, "Full_Dataset"), (df_last_week, "Last_Week"), (df_last
             # Combine coefficient and global stats
             summary_df = pd.concat([coef_df, global_stats]).reset_index(drop=True)
             summary_data[name] = summary_df
-            summary_df = summary_df.fillna({'Coefficient': 0.0})
+            summary_df = summary_df.fillna({'Coefficient': 0.0, 'Value': 0.0})  # Safe fill for formatting
             st.table(summary_df.style.format({'Coefficient': '{:.4f}', 'P-Value': '{:.4f}', 'Value': '{:.4f}'}))  # Display table
             fig = plot_coefficients(model, None, name)  # Visualization
             st.pyplot(fig)
