@@ -49,9 +49,27 @@ def load_data():
     print(f"✅ Data loaded successfully from {database}")
     print(f"📊 Rows: {len(df)}, Columns: {len(df.columns)}")
     print(df.head())
+    df.to_csv('doc_mortality.csv')
     
     return df
-
+def read_doc_mortality():
+    """
+    Reads the 'doc_mortality.csv' file from the same directory 
+    as the current notebook and returns it as a pandas DataFrame.
+    """
+    # Get the directory of the current notebook
+    current_dir = os.getcwd()
+    
+    # Build the full path to the CSV file
+    file_path = os.path.join(current_dir, "doc_mortality.csv")
+    
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+    
+    # Read and return the CSV as a DataFrame
+    df = pd.read_csv(file_path)
+    return df
 
 def preprocess_data(df, y_col, x_cols):
     """

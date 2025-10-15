@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import urllib.parse
 from sqlalchemy import create_engine
-from utils.preprocessing import preprocess_data, filter_weeks
+from utils.preprocessing import preprocess_data, filter_weeks,read_doc_mortality
 from utils.regression_analysis import run_regression
 from utils.visualization import plot_coefficients, plot_individual_variable
 
@@ -70,7 +70,7 @@ def load_data():
     
     return df
 
-df = load_data()
+df = read_doc_mortality()
 
 # Apply the drop for docs_received == 0 (as per latest update) - use .copy() to avoid SettingWithCopyWarning
 if 'docs_received' in df.columns:
