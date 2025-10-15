@@ -72,13 +72,14 @@ def load_data():
 
 df = load_data()
 
-# Apply the drop for docs_received == 0 (as per latest update)
+# Apply the drop for docs_received == 0 (as per latest update) - use .copy() to avoid SettingWithCopyWarning
 if 'docs_received' in df.columns:
     original_rows = len(df)
-    df = df[df['docs_received'] != 0]
+    df = df[df['docs_received'] != 0].copy()
     st.info(f"Dropped {original_rows - len(df)} rows where docs_received == 0. New shape: {df.shape}")
 
-df["first_week_mortality"] = df["doc_dead_1st_week"] / df["docs_received"]
+# Compute first_week_mortality using .loc to avoid SettingWithCopyWarning
+df.loc[:, "first_week_mortality"] = df["doc_dead_1st_week"] / df["docs_received"]
 y_col = "first_week_mortality"
 x_cols = ["hatchery", "hatcher", "setter", "driver_id", 
           "vehicle_number", "source_of_eggs", "customer_type"]
