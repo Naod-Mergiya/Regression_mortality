@@ -82,14 +82,15 @@ def preprocess_data(df, y_col, x_cols):
     
     # Drop rows where the target is missing
     df = df.dropna(subset=[y_col])
+    df = df.copy()  # Explicit copy to avoid SettingWithCopyWarning
     
     # Fill missing predictors: 'Unknown' for object/categorical, 0 for numeric
     for col in x_cols:
         if pd.api.types.is_object_dtype(df[col]):
-            df[col] = df[col].fillna('Unknown')
-            df[col] = df[col].astype('category')  # Convert to category dtype
+            df.loc[:, col] = df[col].fillna('Unknown')
+            df.loc[:, col] = df[col].astype('category')  # Convert to category dtype
         else:
-            df[col] = df[col].fillna(0)
+            df.loc[:, col] = df[col].fillna(0)
     
     # Optional: Print value counts for debugging
     # for col in x_cols:
