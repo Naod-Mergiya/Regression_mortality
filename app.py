@@ -70,6 +70,8 @@ def load_data():
     print(df.head())
     
     return df
+
+@st.cache_data
 def read_doc_mortality():
     """
     Reads the 'doc_mortality.csv' file from the same directory 
