@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import urllib.parse
 from sqlalchemy import create_engine
-from utils.preprocessing import preprocess_data, filter_weeks,read_doc_mortality
+from utils.preprocessing import preprocess_data, filter_weeks
 from utils.regression_analysis import run_regression
 from utils.visualization import plot_coefficients, plot_individual_variable
 
@@ -68,6 +68,24 @@ def load_data():
     print(f"📊 Rows: {len(df)}, Columns: {len(df.columns)}")
     print(df.head())
     
+    return df
+def read_doc_mortality():
+    """
+    Reads the 'doc_mortality.csv' file from the same directory 
+    as the current notebook and returns it as a pandas DataFrame.
+    """
+    # Get the directory of the current notebook
+    current_dir = os.getcwd()
+    
+    # Build the full path to the CSV file
+    file_path = os.path.join(current_dir, "doc_mortality.csv")
+    
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"File not found: {file_path}")
+    
+    # Read and return the CSV as a DataFrame
+    df = pd.read_csv(file_path)
     return df
 
 df = read_doc_mortality()
