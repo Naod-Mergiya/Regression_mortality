@@ -4,16 +4,19 @@ import pandas as pd
 
 def plot_coefficients(model, feature_names, subset_name):
     """
-    Plot significant coefficients from the regression model.
+    Plot significant coefficients from the regression model and return the figure.
     
     Args:
         model: Fitted statsmodels OLS model
         feature_names: List of feature names from preprocessor (optional)
         subset_name (str): Name of the dataset subset (for title)
+    
+    Returns:
+        matplotlib.figure.Figure: The generated figure
     """
     if model is None:
         print(f"No model available for {subset_name}, skipping visualization")
-        return
+        return None
     
     # Extract coefficients and p-values
     coefs = model.params[1:]  # Skip const
@@ -27,7 +30,7 @@ def plot_coefficients(model, feature_names, subset_name):
     
     if sig_names.empty:
         print(f"No significant coefficients (p<0.05) found for {subset_name}")
-        return
+        return None
     
     sorted_idx = np.argsort(sig_abs)[::-1][:15]  # Top 15
     
@@ -52,21 +55,25 @@ def plot_coefficients(model, feature_names, subset_name):
                 va='center')
     
     plt.tight_layout()
-    plt.show()
+    print(f"Returning figure for {subset_name}")  # Debug print
+    return fig  # Return the figure
 
 def plot_individual_variable(df_last_week, df_last_8_weeks, variable, y_col):
     """
-    Plot box plots of y_col by variable categories for last week and last 8 weeks.
+    Plot box plots of y_col by variable categories for last week and last 8 weeks and return the figure.
     
     Args:
         df_last_week (pd.DataFrame): Data for last week
         df_last_8_weeks (pd.DataFrame): Data for last 8 weeks
         variable (str): Independent variable to plot
         y_col (str): Target column name
+    
+    Returns:
+        matplotlib.figure.Figure: The generated figure
     """
     if variable not in df_last_week.columns or variable not in df_last_8_weeks.columns:
         print(f"Variable {variable} not found in the dataset")
-        return
+        return None
     
     # Create figure with two subplots
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), sharey=True)
@@ -101,4 +108,5 @@ def plot_individual_variable(df_last_week, df_last_8_weeks, variable, y_col):
     
     plt.suptitle(f'Distribution of First-Week Mortality by {variable}')
     plt.tight_layout(rect=[0, 0, 1, 0.95])
-    plt.show()
+    print(f"Returning figure for {variable} distribution")  # Debug print
+    return fig  # Return the figure

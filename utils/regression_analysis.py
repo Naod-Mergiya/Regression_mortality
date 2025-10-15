@@ -1,8 +1,9 @@
-
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 import statsmodels.api as sm
+import numpy as np
+import matplotlib.pyplot as plt
 
 def run_regression(df_subset, x_cols, y_col, subset_name):
     """
@@ -38,8 +39,17 @@ def run_regression(df_subset, x_cols, y_col, subset_name):
     # Transform X
     X_transformed = preprocessor.fit_transform(X)
     feature_names = preprocessor.get_feature_names_out()
-    X_transformed_df = pd.DataFrame(X_transformed.toarray() if hasattr(X_transformed, 'toarray') else X_transformed, 
-                                    columns=feature_names, index=X.index)
+    
+    # Force dense conversion to fix sparse matrix flattening in pd.DataFrame
+    if hasattr(X_transformed, 'toarray'):
+        X_transformed = X_transformed.toarray()
+    elif isinstance(X_transformed, np.ndarray) and X_transformed.ndim == 1:
+        raise ValueError(f"X_transformed is unexpectedly 1D: {X_transformed.shape}. Check x_cols for non-categorical columns.")
+    
+    # Debug: Verify shapes match (remove this line after confirming it works)
+    print(f"Debug: X_transformed shape: {X_transformed.shape}, expected columns: {len(feature_names)}")
+    
+    X_transformed_df = pd.DataFrame(X_transformed, columns=feature_names, index=X.index)
     
     # Add constant for intercept
     X_transformed_df = sm.add_constant(X_transformed_df)

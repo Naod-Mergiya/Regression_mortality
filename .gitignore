@@ -1,0 +1,80 @@
+# ------------------------
+# ENVIRONMENT FILES
+# ------------------------
+.env
+*.env
+*.env.*
+
+# ------------------------
+# PYTHON
+# ------------------------
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+coverage.xml
+htmlcov/
+.ipynb_checkpoints/
+
+# ------------------------
+# JUPYTER NOTEBOOKS
+# ------------------------
+.ipynb_checkpoints
+
+# ------------------------
+# IDE / EDITOR FILES
+# ------------------------
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# ------------------------
+# SYSTEM FILES
+# ------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------
+# LOGS AND TEMP FILES
+# ------------------------
+*.log
+*.tmp
+*.bak
+*.swp
+
+# ------------------------
+# AZURE / CREDENTIAL FILES
+# ------------------------
+*.key
+*.pem
+*.pfx
+*.crt
+*.cer
+*.pub
+*.json
+token.txt
+
+# ------------------------
+# NOTEBOOK / EXPORT OUTPUTS
+# ------------------------
+*.csv
+*.xlsx
+*.parquet
+*.pkl
+*.feather
+
+# ------------------------
+# VIRTUAL ENVIRONMENTS
+# ------------------------
+venv/
+env/
+.venv/
+ENV/
