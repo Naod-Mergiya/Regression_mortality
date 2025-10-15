@@ -71,37 +71,35 @@ def read_doc_mortality():
         raise FileNotFoundError(f"File not found: {file_path}")
     
     # Read and return the CSV as a DataFrame
-    df = pd.read_csv(file_path)
+    df = pd.read_csv(file_path, low_memory=False)
     return df
-import pandas as pd  # Ensure at top if missing
 
 def preprocess_data(df, y_col, x_cols):
     """
     Preprocess the dataset: parse dates, add week column, handle NaNs.
     """
+    # Ensure dispatch_date is datetime and derive week number
+    df = df.copy()  # Full copy upfront to own memory before any slicing
     df['dispatch_date'] = pd.to_datetime(df['dispatch_date'], errors='coerce')
     df['Week'] = df['dispatch_date'].dt.isocalendar().week
+
     if 'Week' not in x_cols:
         x_cols.append('Week')
-    
-    # Drop rows where the target is missing
-    df = df.dropna(subset=[y_col])
-    df = df.copy(deep=False)  # Shallow copy post-filter to own the view
-    
-    # Fill missing predictors: 'Unknown' for object/categorical, 0 for numeric
+
+    # Drop rows where the target is missing, make a real copy again
+    df = df.dropna(subset=[y_col]).copy()
+
+    # Fill missing predictors: 'Unknown' for categorical, 0 for numeric
     for col in x_cols:
-        if pd.api.types.is_object_dtype(df[col]):
+        if pd.api.types.is_object_dtype(df[col]) or pd.api.types.is_categorical_dtype(df[col]):
             df.loc[:, col] = df[col].fillna('Unknown')
-            df.loc[:, col] = pd.Categorical(df[col])  # Safer category conversion
+            df.loc[:, col] = pd.Categorical(df[col])
         else:
             df.loc[:, col] = df[col].fillna(0)
-    
-    # Optional: Print value counts for debugging
-    # for col in x_cols:
-    #     print(f"{col} value counts after fill:")
-    #     print(df[col].value_counts())
-    
+
     return df
+
+
 def filter_weeks(df):
     """
     Return DataFrames for the most recent week and the last 8 weeks.
