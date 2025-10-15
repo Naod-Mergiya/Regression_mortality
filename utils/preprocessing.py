@@ -69,7 +69,7 @@ def read_doc_mortality():
         raise FileNotFoundError(f"File not found: {file_path}")
     
     # Read and return the CSV as a DataFrame
-    df = pd.read_csv(file_path, low_memory=False)
+    df = pd.read_csv(file_path)
     return df
 
 def preprocess_data(df, y_col, x_cols):
