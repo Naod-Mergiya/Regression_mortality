@@ -73,6 +73,8 @@ def read_doc_mortality():
     # Read and return the CSV as a DataFrame
     df = pd.read_csv(file_path)
     return df
+import pandas as pd  # Ensure at top if missing
+
 def preprocess_data(df, y_col, x_cols):
     """
     Preprocess the dataset: parse dates, add week column, handle NaNs.
@@ -84,13 +86,13 @@ def preprocess_data(df, y_col, x_cols):
     
     # Drop rows where the target is missing
     df = df.dropna(subset=[y_col])
-    df = df.copy(deep=False)  # Shallow copy the filtered df to own it fully
+    df = df.copy(deep=False)  # Shallow copy post-filter to own the view
     
     # Fill missing predictors: 'Unknown' for object/categorical, 0 for numeric
     for col in x_cols:
         if pd.api.types.is_object_dtype(df[col]):
             df.loc[:, col] = df[col].fillna('Unknown')
-            df.loc[:, col] = pd.Categorical(df[col])  # Use Categorical constructor for clarity
+            df.loc[:, col] = pd.Categorical(df[col])  # Safer category conversion
         else:
             df.loc[:, col] = df[col].fillna(0)
     
@@ -100,7 +102,6 @@ def preprocess_data(df, y_col, x_cols):
     #     print(df[col].value_counts())
     
     return df
-
 def filter_weeks(df):
     """
     Return DataFrames for the most recent week and the last 8 weeks.
