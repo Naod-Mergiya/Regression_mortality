@@ -4,7 +4,7 @@
 .env
 *.env
 *.env.*
-
+*.streamlit/secrets.toml
 # ------------------------
 # PYTHON
 # ------------------------
@@ -65,7 +65,6 @@ token.txt
 # ------------------------
 # NOTEBOOK / EXPORT OUTPUTS
 # ------------------------
-*.csv
 *.xlsx
 *.parquet
 *.pkl
